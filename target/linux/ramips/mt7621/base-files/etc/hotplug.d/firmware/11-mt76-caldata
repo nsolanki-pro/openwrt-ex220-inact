@@ -16,6 +16,16 @@ case "$FIRMWARE" in
 			dd of=$EEPROM seek=$((0x190)) bs=1 conv=notrunc \
 			2>/dev/null
 		;;
+	tplink,ex220-v2)
+		EEPROM=/lib/firmware/$FIRMWARE
+		mkdir -p /mnt/misc_ro
+		if mount -t jffs2 -o ro /dev/mtdblock2 /mnt/misc_ro 2>/dev/null; then
+		    cp /mnt/misc_ro/0x00180000 "$EEPROM" 2>/dev/null || \
+		        echo "Failed to copy EEPROM file for ex220-v2"
+		    umount /mnt/misc_ro
+		fi
+		rm -rf /mnt/misc_ro
+		;;
 	esac
 	;;
 esac
