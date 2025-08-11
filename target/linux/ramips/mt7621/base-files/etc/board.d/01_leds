@@ -208,6 +208,12 @@ tplink,ex220-v1)
 	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan"
 	ucidef_set_led_netdev "wan" "WAN" "green:wan" "wan"
 	;;
+tplink,ex220-v2)
+	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan" "tx rx"
+	ucidef_set_led_netdev "wan" "WAN" "amber:wan" "wan" "link_10 link_100"
+	ucidef_set_led_netdev "internet" "Internet" "green:wan-online" "wan" "tx rx"
+	ucidef_set_led_netdev "wifi" "WiFi" "green:wps"
+	;;
 tplink,deco-m4r-v4)
 	ucidef_set_led_netdev "lan" "LAN" "green:lan" "br-lan"
 	;;
