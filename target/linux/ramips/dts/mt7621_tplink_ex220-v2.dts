@@ -11,10 +11,10 @@
 	model = "TP-Link EX220 v2";
 
 	aliases {
-		led-boot = &power_led;
-	        led-failsafe = &status_led;
-	        led-upgrade = &power_led;
-	        led-running = &wan_led;
+		led-boot = &led_power;
+		led-failsafe = &led_power;
+	        led-running = &led_power;
+		led-upgrade = &led_power;
 	        label-mac-device = &gmac0;
 	};
 
@@ -41,128 +41,138 @@
 	leds {
 		compatible = "gpio-leds";
 
-		wan_led: led-wan {
-			function = LED_FUNCTION_WAN;
+		led-wps {
 			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WPS;
 			gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
-			linux,default-trigger = "netdev";
 		};
 
-		status_led: led-status {
-			function = LED_FUNCTION_STATUS;
-			color = <LED_COLOR_ID_RED>;
+		led-lan {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_LAN;
 			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
-			default-state = "on";
 		};
 
-		power_led: led-power {
-			function = LED_FUNCTION_POWER;
-			color = <LED_COLOR_ID_BLUE>;
+		led-wan-orange {
+			color = <LED_COLOR_ID_AMBER>;
+			function = LED_FUNCTION_WAN;
+			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
+		};
+
+		led_wan_green: led-wan-green {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WAN_ONLINE;
+			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
+		};
+
+		led-wifi5g {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WLAN;
+			function-enumerator = <5>;
+			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy1tpt";
+		};
+
+		led-wifi2g {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WLAN;
+			function-enumerator = <2>;
 			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "phy0tpt";
+		};
+
+		led_power: led-power {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_POWER;
+			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
 		};
 	};
 };
 
-&spi0 {
+&nand {
 	status = "okay";
+	mediatek,nmbm;
 
-	flash@0 {
-		compatible = "jedec,spi-nor";
-		reg = <0>;
-		spi-max-frequency = <25000000>;
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+	nand-ecc-mode = "hw";
+        partition@0 {
+            label = "u-boot";
+            reg = <0x00000000 0x00080000>;
+            read-only;
+        };
 
-		partitions {
-			compatible = "fixed-partitions";
-			#address-cells = <1>;
-			#size-cells = <1>;
+        partition@80000 {
+            label = "u-boot-env";
+            reg = <0x00080000 0x00080000>;
+        };
 
-			partition@0 {
-				label = "boot";
-				reg = <0x00 0x30000>;
-				read-only;
-			};
+        partition@100000 {
+            label = "misc_ro";
+            reg = <0x00100000 0x00600000>;
+            read-only;
 
-			partition@30000 {
-				label = "boot-env";
-				reg = <0x30000 0x10000>;
-				read-only;
-			};
+	    nvmem-layout {
+	        compatible = "fixed-layout";
+	        #address-cells = <1>;
+		#size-cells = <1>;
 
-			partition@40000 {
-				label = "factory";
-				reg = <0x40000 0x10000>;
-				read-only;
-			};
-
-			partition@50000 {
-				label = "config";
-				reg = <0x50000 0x10000>;
-				read-only;
-			};
-
-			partition@60000 {
-				label = "isp_config";
-				reg = <0x60000 0x10000>;
-				read-only;
-			};
-
-			partition@70000 {
-				label = "rom_file";
-				reg = <0x70000 0x10000>;
-				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					macaddr_rom_file_f100: macaddr@f100 {
-						compatible = "mac-base";
-						reg = <0xf100 0x6>;
-						#nvmem-cell-cells = <1>;
-					};
-				};
-			};
-
-			partition@80000 {
-				label = "cloud";
-				reg = <0x80000 0x10000>;
-				read-only;
-			};
-
-			partition@90000 {
-				label = "radio";
-				reg = <0x90000 0x20000>;
-				read-only;
-
-				nvmem-layout {
-					compatible = "fixed-layout";
-					#address-cells = <1>;
-					#size-cells = <1>;
-
-					eeprom_radio_0: eeprom@0 {
-						reg = <0x0 0xe00>;
-					};
-
-					precal_radio_e10: precal@e10 {
-						reg = <0xe10 0x19c10>;
-					};
-				};
-			};
-
-			partition@b0000 {
-				label = "config_bak";
-				reg = <0xb0000 0x10000>;
-				read-only;
-			};
-
-			partition@c0000 {
-				compatible = "denx,fit";
-				label = "firmware";
-				reg = <0xc0000 0xf30000>;
-			};
+		macaddr_1: macaddr@5c30bc {
+			compatible = "mac-base";
+			reg = <0x5c30bc 0x6>;
+			#nvmem-cell-cells = <1>;
 		};
+	    };
+        };
+
+        partition@700000 {
+            label = "misc_rw";
+            reg = <0x00700000 0x00600000>;
+        };
+
+	partition@d00000 {
+	    label = "firmware";
+	    reg = <0x00d00000 0x02c00000>;
+	
+	    compatible = "fixed-partitions";
+	    #address-cells = <1>;
+	    #size-cells = <1>;
+	
+	    partition@0 {
+	        label = "kernel";
+	        reg = <0x0 0x360000>;
+	    };
+	
+	    partition@400000 {
+	        label = "ubi";
+	        reg = <0x360000 0x2700000>;
+	    };
 	};
+
+        partition@3900000 {
+            label = "bflag";
+            reg = <0x03900000 0x00600000>;
+            read-only;
+        };
+
+        partition@3f00000 {
+            label = "misc_rw_bak";
+            reg = <0x03f00000 0x00600000>;
+        };
+
+        partition@4500000 {
+            label = "misc_isp";
+            reg = <0x04500000 0x00600000>;
+            read-only;
+        };
+
+        partition@0whole {
+            label = "whole";
+            reg = <0x00000000 0x08000000>;
+        };
+    };
 };
 
 &pcie {
@@ -170,54 +180,64 @@
 };
 
 &pcie1 {
-	wifi@0,0 {
+	wifi0: wifi@0,0 {
 		compatible = "mediatek,mt76";
 		reg = <0x0000 0 0 0 0>;
-		nvmem-cells = <&eeprom_radio_0>, <&precal_radio_e10>, <&macaddr_rom_file_f100 0>;
-		nvmem-cell-names = "eeprom", "precal", "mac-address";
+		nvmem-cells = <&macaddr_1 0>;
+		nvmem-cell-names = "mac-address";
 		mediatek,disable-radar-background;
-
-		band@1 { 
-			reg = <1>;
-			nvmem-cells = <&macaddr_rom_file_f100 2>;
-			nvmem-cell-names = "mac-address";
-		};
 	};
 };
 
+&ethernet {
+	pinctrl-0 = <&mdio_pins>, <&rgmii1_pins>, <&rgmii2_pins>;
+};
+
 &gmac0 {
-	nvmem-cells = <&macaddr_rom_file_f100 0>;
+	phy-mode = "trgmii";
+	nvmem-cells = <&macaddr_1 0>;
 	nvmem-cell-names = "mac-address";
 };
 
 &gmac1 {
-	status = "okay";
+        status = "okay";
 	label = "wan";
-	phy-handle = <&ethphy0>;
+        phy-handle = <&ethphy0>;
 
-	nvmem-cells = <&macaddr_rom_file_f100 1>;
+	nvmem-cells = <&macaddr_1 0>;
 	nvmem-cell-names = "mac-address";
-};
-
-&ethphy0 {
-	/delete-property/ interrupts;
 };
 
 &switch0 {
 	ports {
-		port@2 {
+		port@0 {
 			status = "okay";
 			label = "lan1";
 		};
 
-		port@3 {
+		port@1 {
 			status = "okay";
 			label = "lan2";
 		};
 
-		port@4 {
+		port@2 {
 			status = "okay";
 			label = "lan3";
+		};
+
+		port@3 {
+			status = "okay";
+			label = "lan4";
+		};
+
+		port@4 {
+			status = "okay";
+			label = "wan";
+		};
+
+		port@6 {
+			status = "okay";
+			label = "lan6";
 		};
 	};
 };
@@ -227,4 +247,12 @@
 		groups = "i2c", "uart3", "jtag", "wdt";
 		function = "gpio";
 	};
+};
+
+&gdma {
+	status = "okay";
+};
+
+&hsdma {
+	status = "okay";
 };
