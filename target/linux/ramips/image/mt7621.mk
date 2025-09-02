@@ -2828,7 +2828,7 @@ define Device/tplink_ex220-v2
   DEVICE_VENDOR := TP-Link
   DEVICE_MODEL := EX220
   DEVICE_VARIANT := v2
-  DEVICE_PACKAGES := kmod-mt7915e-firmware kmod-mt7915e -uboot-envtools
+  DEVICE_PACKAGES := kmod-mt7915-firmware kmod-mt7915e -uboot-envtools
   TPLINK_BOARD_ID := EX220-V2
   KERNEL_LOADADDR := 0x82000000
   KERNEL := kernel-bin | relocate-kernel $(loadaddr-y) | lzma | \
