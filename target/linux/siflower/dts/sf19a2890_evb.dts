@@ -136,16 +136,6 @@
                                 reg = <0x00080000 0x000750000>; /* 7.25MB */
                         };
 
-                        partition@80000 {
-                                label = "kernel";
-                                reg = <0x00080000 0x0027250a>; /* ~2.4MB */
-                        };
-
-                        partition@27250a {
-                                label = "rootfs";
-                                reg = <0x0027250a 0x0055DAF6>; /* ~5.45MB */
-                        };
-
                         partition@7d0000 {
                                 label = "CFM";
                                 reg = <0x007d0000 0x00010000>; /* 64k */
