@@ -168,6 +168,9 @@ endif
 kernel_oldconfig: prepare_kernel_conf
 	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux oldconfig
 
+kernel_savedefconfig: prepare_kernel_conf
+	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux savedefconfig
+
 ifneq ($(DISTRO_PKG_CONFIG),)
 kernel_menuconfig: export PATH:=$(dir $(DISTRO_PKG_CONFIG)):$(PATH)
 kernel_nconfig: export PATH:=$(dir $(DISTRO_PKG_CONFIG)):$(PATH)

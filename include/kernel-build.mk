@@ -173,6 +173,12 @@ define BuildKernel
 		$$@
 	$(call LINUX_RECONF_DIFF,$(LINUX_DIR)/.config) > $(LINUX_RECONFIG_TARGET)
 
+  savedefconfig: $(STAMP_PREPARED) $(STAMP_CHECKED) FORCE
+	rm -f $(LINUX_DIR)/.config.prev
+	rm -f $(STAMP_CONFIGURED)
+	$(LINUX_RECONF_CMD) > $(LINUX_DIR)/.config
+	$(call LINUX_RECONF_DIFF,$(LINUX_DIR)/.config) > $(LINUX_RECONFIG_TARGET)
+
   install: $(LINUX_DIR)/.image
 	+$(MAKE) -C image compile install TARGET_BUILD=
 
