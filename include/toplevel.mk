@@ -123,6 +123,10 @@ defconfig: scripts/config/conf prepare-tmpinfo FORCE
 	[ -L .config ] && export KCONFIG_OVERWRITECONFIG=1; \
 		$< $(KCONF_FLAGS) --defconfig=.config Config.in
 
+savedefconfig: scripts/config/conf prepare-tmpinfo FORCE
+	[ -L .config ] && export KCONFIG_OVERWRITECONFIG=1; \
+		$< $(KCONF_FLAGS) --savedefconfig=$(if $(SAVED_DEFCONFIG),$(SAVED_DEFCONFIG),defconfig) Config.in
+
 confdefault-y=allyes
 confdefault-m=allmod
 confdefault-n=allno
