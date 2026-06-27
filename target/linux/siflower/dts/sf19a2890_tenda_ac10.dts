@@ -1,0 +1,217 @@
+/dts-v1/;
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+#include "sf19a2890.dtsi"
+
+/ {
+	model = "Tenda AC10 V5";
+	compatible = "tenda,ac10v5", "siflower,sf19a2890";
+
+	aliases {
+		led-boot = &led_sys;
+		led-failsafe = &led_sys;
+		led-running = &led_sys;
+		led-upgrade = &led_sys;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x0 0x4000000>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_lan: lan {
+			function = LED_FUNCTION_LAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 0 GPIO_ACTIVE_LOW>;
+		};
+
+		led_sys: sys {
+			/* gpio 1 = stock sys_led (system/status indicator, active-low).
+			 * Aliased as led-boot/failsafe/running/upgrade above. */
+			function = LED_FUNCTION_STATUS;
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&gpio 1 GPIO_ACTIVE_LOW>;
+		};
+
+		led_wan: wan {
+			function = LED_FUNCTION_WAN;
+			color = <LED_COLOR_ID_GREEN>;
+			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
+		};
+
+		led_wlan: wlan {
+			/* gpio 12 = stock 2.4G_led (active-low). Registered as a plain
+			 * gpio-led here; a WiFi driver may bind a trigger later. */
+			function = LED_FUNCTION_WLAN;
+			color = <LED_COLOR_ID_BLUE>;
+			gpios = <&gpio 12 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&gpio 27 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+};
+
+&gmac {
+	status = "okay";
+	phy-mode = "rgmii-id";
+	snps,ps-speed = <1000>;
+	nvmem-cells = <&macaddr_factory_0>, <&rgmii_delay_factory_b2>;
+	nvmem-cell-names = "mac-address", "rgmii-delay";
+	/* DSA adds a 4-byte MTK tag, so the conduit must carry 1504-byte frames.
+	 * DWMAC1000 does not report tx_fifo_size in its HW cap (only dwmac4
+	 * does) and there is no tx-fifo-depth here, so stmmac_change_mtu sees
+	 * txfifosz=0 and rejects MTU 1504 with -EINVAL -> the conduit stays
+	 * capped at 1500 and every DSA slave ends up at 1496. Give it a real
+	 * FIFO depth. */
+	tx-fifo-depth = <4096>;
+	/* The gmac is the DSA conduit for the MT7530 CPU port (port 5). Keep a
+	 * fixed-link here so stmmac/phylink does not scan the MDIO bus for a
+	 * PHY (the only responder on that bus is the switch at addr 31);
+	 * without it stmmac_open fails with "no phy found" (-ENODEV). The CPU
+	 * port's own fixed-link lives on port@5 below. */
+	fixed-link {
+		speed = <1000>;
+		full-duplex;
+		pause;
+	};
+};
+
+&mdio {
+	switch: switch@1f {
+		compatible = "mediatek,mt7530";
+		reg = <0x1f>;
+		/* GPIO 11 = MT7530 nRST. The mainline mt7530 driver acquires the
+		 * reset as GPIOD_OUT_LOW and runs set(0) -> set(1) before polling,
+		 * i.e. it expects set(1) to DEASSERT (release) reset. That only
+		 * holds when the gpio is ACTIVE_HIGH (set(1) = physical high =
+		 * nRST high = run). With ACTIVE_LOW, set(1) drives nRST low and
+		 * holds the chip in reset through the TRAP/CREV reads -> 0xffff.
+		 * Use ACTIVE_HIGH. */
+		reset-gpios = <&gpio 11 GPIO_ACTIVE_HIGH>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 { reg = <0>; status = "disabled"; };
+
+			port@1 { reg = <1>; label = "lan1"; };
+			port@2 { reg = <2>; label = "lan2"; };
+			port@3 { reg = <3>; label = "lan3"; };
+
+			port@4 { reg = <4>; label = "wan"; };
+
+			port@5 {
+				reg = <5>;
+				ethernet = <&gmac>;
+				phy-mode = "rgmii";
+				fixed-link {
+					speed = <1000>;
+					full-duplex;
+					pause;
+				};
+			};
+
+			port@6 { reg = <6>; status = "disabled"; };
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&usb {
+	status = "okay";
+};
+
+&usb_phy {
+	status = "okay";
+};
+
+&spi {
+	status = "okay";
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <30000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "spl-loader";
+				reg = <0x00000000 0x00008000>; /* 32k */
+				read-only;
+			};
+
+			partition@8000 {
+				label = "u-boot";
+				reg = <0x00008000 0x00067000>; /* 412k */
+			};
+
+			partition@6f000 {
+				label = "u-boot-env";
+				reg = <0x0006f000 0x00001000>; /* 4k */
+			};
+
+			factory: partition@70000 {
+				label = "factory";
+				reg = <0x00070000 0x00010000>; /* 64k */
+
+				nvmem-layout {
+					compatible = "fixed-layout";
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					macaddr_factory_0: macaddr@0 {
+						reg = <0x0 0x6>;
+					};
+
+					rgmii_delay_factory_b2: rgmii-delay@b2 {
+						reg = <0xb2 0x4>;
+					};
+				};
+			};
+
+			firmware@80000 {
+				compatible = "denx,uimage";
+				label = "firmware";
+				reg = <0x00080000 0x000750000>; /* 7.25MB */
+			};
+
+			partition@7d0000 {
+				label = "CFM";
+				reg = <0x007d0000 0x00010000>; /* 64k */
+			};
+
+			partition@7e0000 {
+				label = "CFM_BACKUP";
+				reg = <0x007e0000 0x00010000>; /* 64k */
+			};
+
+			partition@7f0000 {
+				label = "CFG";
+				reg = <0x007f0000 0x00010000>; /* 64k */
+			};
+		};
+	};
+};
