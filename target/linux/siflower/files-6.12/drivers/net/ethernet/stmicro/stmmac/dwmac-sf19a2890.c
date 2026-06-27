@@ -115,6 +115,7 @@ static int sf19a2890_gmac_probe(struct platform_device *pdev)
 	struct plat_stmmacenet_data *plat_dat;
 	struct sf19a2890_gmac_priv *priv;
 	struct stmmac_resources stmmac_res;
+	struct net_device *ndev;
 	int ret;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(*priv), GFP_KERNEL);
@@ -160,8 +161,21 @@ static int sf19a2890_gmac_probe(struct platform_device *pdev)
 	plat_dat->flags |= STMMAC_FLAG_HAS_INTEGRATED_PCS;
 
 	ret = stmmac_pltfr_probe(pdev, plat_dat, &stmmac_res);
+	if (ret)
+		return ret;
 
-	return ret;
+	/* stmmac_dvr_probe() calls SET_NETDEV_DEV() (which only sets
+	 * dev.parent) but never propagates the OF node to the netdev's own
+	 * dev.of_node. DSA switch drivers dereference conduit->dev.of_node
+	 * directly (e.g. mt7530_setup: cpu_dp->conduit->dev.of_node->parent),
+	 * so a DSA conduit without this NULL-derefs on probe. DSA's conduit
+	 * lookup (of_find_net_device_by_node) still matches via the parent
+	 * chain, so the crash only surfaces inside the switch driver. Set it.
+	 */
+	ndev = platform_get_drvdata(pdev);
+	ndev->dev.of_node = pdev->dev.of_node;
+
+	return 0;
 }
 
 static const struct of_device_id dwmac_sf19a2890_match[] = {
