@@ -1,0 +1,30 @@
+From: Naresh Solanki <naresh.solanki.2011@gmail.com>
+Subject: mtd: spi-nor: spansion: add SPI_NOR_HAS_LOCK for s25fl064k (W25Q64)
+
+The Winbond W25Q64 (JEDEC 0xef 0x40 0x17) on the Tenda AC10 V5 matches
+the spansion s25fl064k entry in the spi-nor ID table. These chips ship
+with BP=7 (whole-chip protected) + SRWD=1 set in the status register.
+
+On Linux 6.12, spi_nor_try_unlock_all() (swp.c) only clears the block
+protect bits when BOTH CONFIG_MTD_SPI_NOR_SWP_DISABLE is set AND the
+flash entry carries the SPI_NOR_HAS_LOCK flag. The s25fl064k entry has
+no .flags, so the unlock returned early and BP stayed 7, causing every
+erase/program operation to silently no-op while reads continued to
+work. As a result sysupgrade could not actually write to the flash.
+
+Add SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB to the s25fl064k entry so
+try_unlock_all() runs and clears BP at boot (the 3-bit default mask
+covers the set BP0-2 bits; full-unlock also clears SRWD).
+
+Signed-off-by: Naresh Solanki <naresh.solanki.2011@gmail.com>
+---
+--- a/drivers/mtd/spi-nor/spansion.c
++++ b/drivers/mtd/spi-nor/spansion.c
+@@ -1036,6 +1036,7 @@
+ 		.id = SNOR_ID(0xef, 0x40, 0x17),
+ 		.name = "s25fl064k",
+ 		.size = SZ_8M,
++		.flags = SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB,
+ 		.no_sfdp_flags = SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ,
+ 	}
+ };
